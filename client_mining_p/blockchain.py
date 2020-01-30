@@ -11,7 +11,6 @@ class Blockchain(object):
     def __init__(self):
         self.chain = []
         self.current_transactions = []
-
         # Create the genesis block, 1 is very different from all the other data
         self.new_block(previous_hash=1, proof=100)
 
@@ -81,21 +80,23 @@ class Blockchain(object):
     def last_block(self):
         return self.chain[-1]
 
-    def proof_of_work(self, block):
-        """
-        Simple Proof of Work Algorithm
-        Stringify the block and look for a proof.
-        Loop through possibilities, checking each one against `valid_proof`
-        in an effort to find a number that is a valid proof
-        :return: A valid proof for the provided block
-        """
-        # TODO
-        block_string = json.dumps(self.last_block, sort_keys=True)
-        proof = 0
-        while self.valid_proof(block_string, proof) is False:
-            proof += 1
+    # def proof_of_work(self, block):
+    #     """
+    #     Simple Proof of Work Algorithm
+    #     Stringify the block and look for a proof.
+    #     Loop through possibilities, checking each one against `valid_proof`
+    #     in an effort to find a number that is a valid proof
+    #     :return: A valid proof for the provided block
+    #     """
+    #     # TODO
+    #     block_string = json.dumps(self.last_block, sort_keys=True)
+    #     # So this user is trying to add block_string + a number to see if they can find a hash with 6 leadings 0's, then if they find the proof, then they can send their proof (ie some large number) and the server can verify the proof by doing the oringal hash and compare hashes?
+    #     proof = 0
+    #     while self.valid_proof(block_string, proof) is False:
+    #         proof += 1
 
-        return proof
+    #     #Are you returning a number to show how many you checked - to show the work put in
+    #     return proof
 
     @staticmethod
     def valid_proof(block_string, proof):
@@ -126,21 +127,32 @@ node_identifier = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
 
-@app.route('/mine', methods=['GET'])
+@app.route('/mine', methods=['POST'])
 def mine():
-    # Run the proof of work algorithm to get the next proof
-    proof = blockchain.proof_of_work(blockchain.last_block)
+    data = request.get_json()
 
-    # Forge the new Block by adding it to the chain with the proof
-    previous_hash = blockchain.hash(blockchain.last_block)
-    new_block = blockchain.new_block(proof, previous_hash)
+    # Check that proof and id are present
+    if not data["proof"] or not data["id"]:
+        response = {
+            "message": "Failure"
+        }
+        return jsonify(response), 400
     
-    # TODO: Send a JSON response with the new block
-    response = {
-        "block": new_block    
-    }
+    block_string = json.dumps(self.last_block, sort_keys=True)
 
-    return jsonify(response), 200
+    #We need to check if the proof matches for the last block
+    if blockchain.valid_proof(block_string, data["proof"]):
+        # Forge the new Block by adding it to the chain with the proof
+        previous_hash = blockchain.hash(blockchain.last_block)
+        new_block = blockchain.new_block(data["proof"], previous_hash)
+        
+        # TODO: Send a JSON response with the new block
+        response = {
+            "block": new_block,   
+            "coins": 1 
+        }
+
+        return jsonify(response), 200
 
 @app.route('/last_block', methods=['Get'])
 def last_block():
