@@ -138,7 +138,7 @@ def mine():
         }
         return jsonify(response), 400
     
-    block_string = json.dumps(self.last_block, sort_keys=True)
+    block_string = json.dumps(blockchain.last_block, sort_keys=True)
 
     #We need to check if the proof matches for the last block
     if blockchain.valid_proof(block_string, data["proof"]):
@@ -148,6 +148,7 @@ def mine():
         
         # TODO: Send a JSON response with the new block
         response = {
+            "message": "New Block Forged",
             "block": new_block,   
             "coins": 1 
         }

@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
         # TODO: If the server responds with a 'message' 'New Block Forged'
         if data["message"] == "New Block Forged":
-            print("Succes")
+            print("Success")
             coins += 1
             print(f"Client has earned {coins} coins")
         else:
