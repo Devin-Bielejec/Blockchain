@@ -4,7 +4,7 @@ from time import time
 from uuid import uuid4
 
 from flask import Flask, jsonify, request
-
+from flask_cors import CORS
 DIFFICULTY = 6
 
 class Blockchain(object):
@@ -119,6 +119,7 @@ class Blockchain(object):
 
 # Instantiate our Node
 app = Flask(__name__)
+CORS(app)
 
 # Generate a globally unique address for this node
 node_identifier = str(uuid4()).replace('-', '')
@@ -126,6 +127,95 @@ node_identifier = str(uuid4()).replace('-', '')
 # Instantiate the Blockchain
 blockchain = Blockchain()
 
+@app.route("/maze/<size>", methods=["GET"])
+def get_maze(size):
+    size = int(size)
+    import random
+ 
+    def getAdjacentRooms(board, rowIdx, colIdx):
+        adjacent_rooms = []
+        vectors = [[0,1],[0,-1],[1,0],[-1,0]]
+        for [r,c] in vectors:
+            if rowIdx + r >= 0 and rowIdx + r < len(board) and colIdx + c >= 0 and colIdx + c < len(board):
+                adjacent_rooms.append(board[rowIdx+r][colIdx+c]) 
+        return adjacent_rooms
+
+
+    #rooms are objects {visited, coordinates}
+    #We're going to add exits: {north, south, east, west etc}
+    def addExits(room1, room2):
+        #north (row=0) south (row >) 
+        if room1["coordinates"][0] > room2["coordinates"][0]:
+            room1["exits"].append("north")
+            room2["exits"].append("south")
+
+        #south north
+        if room1["coordinates"][0] < room2["coordinates"][0]:
+            room1["exits"].append("south")
+            room2["exits"].append("north")
+        
+        #east west - col < secondCol
+        if room1["coordinates"][1] < room2["coordinates"][1]:
+            room1["exits"].append("east")
+            room2["exits"].append("west")
+
+        #west east
+        if room1["coordinates"][1] > room2["coordinates"][1]:
+            room1["exits"].append("west")
+            room2["exits"].append("east")
+
+    def make_maze_objects(size):
+        maze = []
+        names = ["The Kitchen", "Basement", "Garden", "Den"]
+        descriptions = ["SO quiet", "so cold", "so hot"]
+        for i in range(size):
+            #Adding a row
+            maze.append([])
+            for j in range(size):
+                #for each column add an object
+                maze[i].append({"name": random.choice(names), "description": random.choice(descriptions),"isChicken": False, "players": [], "coordinates": [i,j], "visited": False, "exits": []})
+
+        return maze
+
+
+    def make_maze(size):
+        maze = make_maze_objects(size)
+
+        #Holding previous_room, current_room
+        stack = [[None, maze[0][0]]]
+        while stack:
+            [previous_room, current_room] = stack.pop()
+
+            if current_room["visited"]:
+                #Then i want to make a door for previous and current room
+                continue
+            else:
+                #If previous room is not None, make exits for both rooms
+                if previous_room is not None:
+                    addExits(previous_room, current_room)
+
+                #Make current_room visited
+                current_room["visited"] = True
+                #get list of adjacent rooms
+                adjacent_rooms = getAdjacentRooms(maze, current_room["coordinates"][0], current_room["coordinates"][1])
+                
+                #randomize adjacent rooms and add to stack if they haven't been visited
+                random.shuffle(adjacent_rooms)
+                for adj_room in adjacent_rooms:
+                    if adj_room["visited"] is False:
+                        #previous_room => current_room
+                        #current_room => adj
+                        stack.append([current_room, adj_room])
+
+        return maze
+    maze = make_maze(size)
+
+    for i in range(len(maze)):
+        for j in range(len(maze[i])):
+            del maze[i][j]["visited"]
+
+
+    return jsonify(maze), 200
 
 @app.route('/mine', methods=['POST'])
 def mine():

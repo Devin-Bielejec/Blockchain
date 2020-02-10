@@ -6,7 +6,7 @@ import json
 
 import time
 
-DIFFICULTY = 6
+DIFFICULTY = 1
 
 def proof_of_work(block):
     """
